@@ -1,0 +1,3 @@
+## Uninstall Office
+
+This is a modified version of the non-interactive example script from microsoft to target uninstalling office
