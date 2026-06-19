@@ -577,3 +577,6 @@ Clean-LocalFiles
 # End Main section
 # ================
 #
+
+# Launch page to re-download office in chrome
+[System.Diagnostics.Process]::Start("chrome", "https://portal.office.com")
