@@ -1,62 +1,26 @@
 ﻿#****************************************************************************************************
 #
-# Version: 17.12.09.2022
+# uninstall-office.ps1
+# Copyright (c) 2026 Arthur Taft, Microsoft Croporation. All Rights Reserved.
 #
 #****************************************************************************************************
 #
-# Available Scenarios that can be run and their corresponding minimum <required> switches and arguments.
-#
-# NOTE: There are additional <optional> switches and parameters.
-# Please see https://learn.microsoft.com/microsoft-365/troubleshoot/administration/sara-command-line-version
-# for complete details. Or, run SaraCmd.exe /?
-#
-# Outlook Advanced Diagnostic Scan:
-# -S ExpertExperienceAdminTask -Script -AcceptEula
-#
-# Office Uninstall:
-# -S OfficeScrubScenario -Script -AcceptEula
-#
-# Teams Meeting Add-in for Outlook troubleshooter:
-# -S TeamsAddinScenario -Script -AcceptEula -CloseOutlook
-#
-# Office Shared Computer Activation:
-# -S OfficeSharedComputerScenario -Script -AcceptEula -CloseOffice
-#
-# Outlook Calendar Scan using CalCheck:
-# -S OutlookCalendarCheckTask -Script -AcceptEula
-#
-# Office Activation troubleshooter:
-# -S OfficeActivationScenario -Script -AcceptEula -CloseOffice
-#
-# Reset Office Subscription Activation:
-# -S ResetOfficeActivation -Script -AcceptEula -CloseOffice
+# Version: 1.2
 #
 #****************************************************************************************************
 #
 # Configurable Variables
 # ======================
 #
-# (1) Variable Name: SaraCmdSourcePath
+# (1) Variable Name: GetHelpCmdSourcePath
 # ------------------------------------
 #
-# You have two options:
-# a. Leave the default variable value. By default, the script uses https://aka.ms/SaRA_EnterpriseVersionFiles
-# to download and use the latest files from the web
-# -or-
-# b. If desired, modify $SaraCmdSourcePath to use a local (full) path to reference the SaRA Enterprise files
-# folder (files extracted) or .zip file
+$GetHelpCmdSourcePath = "https://aka.ms/SaRA_EnterpriseVersionFiles"
 #
-$SaraCmdSourcePath = "https://aka.ms/SaRA_EnterpriseVersionFiles"
-#
-# (2) Variable Name: SaraScenarioArgument
+# (2) Variable Name: GetHelpScenarioArgument
 # ---------------------------------------
 #
-# - Replace with arguments for your scenario, refer to the list above in 'Available Scenarios...'
-# - Check latest SaRA Commandline documentation for updates -- please see https://aka.ms/SaRA_CommandLineVersion
-#
-# Example: $SaraScenarioArgument = "-S TeamsAddinScenario -Script -AcceptEula -CloseOutlook"
-#
-$SaraScenarioArgument = "-S OfficeScrubScenario -Script -AcceptEula"
+$GetHelpScenarioArgument = "-S OfficeScrubScenario -AcceptEula -LogFolder $PSScriptRoot\LogFiles"
 #
 # (3) Variable Name: currentTimeStamp
 # ------------------------------------
@@ -83,95 +47,95 @@ $resultsFileName = $env:USERNAME + "_<scenario>_$currentTimeStamp.zip"
 
 $currentLocation = $PSScriptRoot
 $resultsFilePath = "$currentLocation\$resultsFileName"
-$SaraCmdExecutableFolder = "$currentLocation\SaraCMDExecutable"
-$SaraCmdExecutablePath = "$SaraCmdExecutableFolder\SaraCMD.exe"
+$GetHelpCmdExecutableFolder = "$currentLocation\GetHelpCMDExecutable"
+$GetHelpCmdExecutablePath = "$GetHelpCmdExecutableFolder\GetHelpCmd.exe"
 $LocalLogFolder = "$currentLocation\LogFiles"
-$scriptLogFile = "$LocalLogFolder\SaraCmd-$currentTimeStamp.txt"
+$scriptLogFile = "$LocalLogFolder\GetHelpCmd-$currentTimeStamp.txt"
 $scriptStartTime = Get-Date
 
 # ------------------------
 # Starting Local Functions
 # ------------------------
 
-# Create local folders that contain SaRA files and log files
+# Create local folders that contain GetHelpCmd files and log files
 Function Create-LocalFolders
 {
-    New-Item -Path $SaraCmdExecutableFolder -ItemType "directory" -Force | Out-Null
-        New-Item -Path $LocalLogFolder -ItemType "directory" -Force | Out-Null
+    New-Item -Path $GetHelpCmdExecutableFolder -ItemType "directory" -Force | Out-Null
+    New-Item -Path $LocalLogFolder -ItemType "directory" -Force | Out-Null
 }
 
 # Cleanup the local folders that were created by the script
 Function Clean-LocalFiles
 {
-    Remove-Item -Path $SaraCmdExecutableFolder -Force -Recurse
-        Remove-Item -Path $LocalLogFolder -Force -Recurse
+    Remove-Item -Path $GetHelpCmdExecutableFolder -Force -Recurse
+    Remove-Item -Path $LocalLogFolder -Force -Recurse
 }
 
 # Cleanup files created by the script that may remain from a previous run
 Function Clean-InitialFiles
 {
-    $targetZipFileLocation = "$currentLocation\SaraCmd.zip"
-# Delete local zip file if it exists
-        if (Test-Path -Path $targetZipFileLocation -PathType Leaf)
-        {
-            Remove-Item -Path $targetZipFileLocation -Force | Out-File -FilePath $scriptLogFile -Append
-        }
-
-    if (Test-Path -Path $SaraCmdExecutableFolder)
+    $targetZipFileLocation = "$currentLocation\GetHelpCmd.zip"
+    # Delete local zip file if it exists
+    if (Test-Path -Path $targetZipFileLocation -PathType Leaf)
     {
-        Remove-Item -Path $SaraCmdExecutableFolder -Force -Recurse | Out-File -FilePath $scriptLogFile -Append
+        Remove-Item -Path $targetZipFileLocation -Force | Out-File -FilePath $scriptLogFile -Append
+    }
+
+    if (Test-Path -Path $GetHelpCmdExecutableFolder)
+    {
+        Remove-Item -Path $GetHelpCmdExecutableFolder -Force -Recurse | Out-File -FilePath $scriptLogFile -Append
     }
 }
 
-# Copy the SaraCmd Execution folders locally
-Function Copy-SaraLocally($SaraCmdSourcePath)
+# Copy the GetHelpCmd Execution folders locally
+Function Copy-GetHelpLocally($GetHelpCmdSourcePath)
 {
-    $targetZipFileLocation = "$currentLocation\SaraCmd.zip"
+    $targetZipFileLocation = "$currentLocation\GetHelpCmd.zip"
 
-        Write-Output "Copying Files from $SaraCmdSourcePath" | Out-File -FilePath $scriptLogFile -Append
+    Write-Output "Copying Files from $GetHelpCmdSourcePath" | Out-File -FilePath $scriptLogFile -Append
 
-# if the source starts with https, just download it
-        if ($SaraCmdSourcePath.StartsWith("http", 'CurrentCultureIgnoreCase'))
-        {
-            Write-Output "Getting zip file from web location $SaraCmdSourcePath" | Out-File -FilePath $scriptLogFile -Append
-
-                Invoke-WebRequest -URI $SaraCmdSourcePath -OutFile $targetZipFileLocation
-                $SaraCmdSourcePath = $targetZipFileLocation
-        }
-        else
-        {
-            if ($SaraCmdSourcePath.EndsWith(".zip", 'CurrentCultureIgnoreCase'))
-            {
-                Copy-Item -Path $SaraCmdSourcePath -Destination $targetZipFileLocation -Force | Out-File -FilePath $scriptLogFile -Append
-                    $SaraCmdSourcePath = $targetZipFileLocation
-            }
-        }
-
-# if source ends with zip, copy it locally, overwrite if it was downloaded in the previous step
-# if the source ends with zip, extract it
-    if ($SaraCmdSourcePath.EndsWith(".zip", 'CurrentCultureIgnoreCase'))
+    # if the source starts with https, just download it
+    if ($GetHelpCmdSourcePath.StartsWith("http", 'CurrentCultureIgnoreCase'))
     {
-        Write-Output "Expanding zip file from $SaraCmdSourcePath" | Out-File -FilePath $scriptLogFile -Append
-            Expand-Archive -Path $targetZipFileLocation -DestinationPath $SaraCmdExecutableFolder -Force
-            $SaraCmdSourcePath = $SaraCmdExecutableFolder
+        Write-Output "Getting zip file from web location $GetHelpCmdSourcePath" | Out-File -FilePath $scriptLogFile -Append
+
+            Invoke-WebRequest -URI $GetHelpCmdSourcePath -OutFile $targetZipFileLocation
+            $GetHelpCmdSourcePath = $targetZipFileLocation
+    }
+    else
+    {
+        if ($GetHelpCmdSourcePath.EndsWith(".zip", 'CurrentCultureIgnoreCase'))
+        {
+            Copy-Item -Path $GetHelpCmdSourcePath -Destination $targetZipFileLocation -Force | Out-File -FilePath $scriptLogFile -Append
+            $GetHelpCmdSourcePath = $targetZipFileLocation
+        }
     }
 
-    if($SaraCmdSourcePath -ne $SaraCmdExecutableFolder)
+    # if source ends with zip, copy it locally, overwrite if it was downloaded in the previous step
+    # if the source ends with zip, extract it
+    if ($GetHelpCmdSourcePath.EndsWith(".zip", 'CurrentCultureIgnoreCase'))
     {
-# copy files to expected folder
-        Write-Output "Copying files from $SaraCmdSourcePath" | Out-File -FilePath $scriptLogFile -Append
-            Copy-Item -Path $SaraCmdSourcePath\* -Destination $SaraCmdExecutableFolder -Recurse -Force
-            Write-Output "Copied Files To $SaraCmdExecutableFolder" | Out-File -FilePath $scriptLogFile -Append
+        Write-Output "Expanding zip file from $GetHelpCmdSourcePath" | Out-File -FilePath $scriptLogFile -Append
+        Expand-Archive -Path $targetZipFileLocation -DestinationPath $GetHelpCmdExecutableFolder -Force
+        $GetHelpCmdSourcePath = $GetHelpCmdExecutableFolder
     }
 
-# Delete local zip file if it exists
+    if($GetHelpCmdSourcePath -ne $GetHelpCmdExecutableFolder)
+    {
+        # copy files to expected folder
+        Write-Output "Copying files from $GetHelpCmdSourcePath" | Out-File -FilePath $scriptLogFile -Append
+        Copy-Item -Path $GetHelpCmdSourcePath\* -Destination $GetHelpCmdExecutableFolder -Recurse -Force
+        Write-Output "Copied Files To $GetHelpCmdExecutableFolder" | Out-File -FilePath $scriptLogFile -Append
+    }
+
+    # Delete local zip file if it exists
     if (Test-Path -Path $targetZipFileLocation -PathType Leaf)
     {
         Remove-Item -Path $targetZipFileLocation -Force
     }
 
-# Check if the source contains SaraCmd.Exe
-    if (Test-Path -Path "$SaraCmdExecutableFolder\SaraCmd.exe" -PathType Leaf)
+    # Check if the source contains GetHelpCmd.Exe
+    if (Test-Path -Path "$GetHelpCmdExecutableFolder\GetHelpCmd.exe" -PathType Leaf)
     {
         return $true
     }
@@ -180,36 +144,6 @@ Function Copy-SaraLocally($SaraCmdSourcePath)
         return $false
     }
 
-}
-
-# Copies log files from the Sara CommandLine folders into current working folder tree
-Function Copy-LogFiles()
-{
-    $SaraLogsRootFolder = $env:LOCALAPPDATA
-        $saraLogsFolder = "$SaraLogsRootFolder\SaraLogs\Log\"
-        $SaraUploadLogsFolder = "$SaraLogsRootFolder\SaraLogs\UploadLogs\"
-        $SaraResultsFolder = "$SaraLogsRootFolder\SaraResults\"
-
-# Copy contents from Sara Logs
-        Get-ChildItem -Path $saraLogsFolder |
-        Where-Object {
-            $_.LastWriteTime `
-                -gt $scriptStartTime } |
-                ForEach-Object { $_ | Copy-Item -Destination $LocalLogFolder -Recurse }
-
-# Copy contents from Sara Upload Logs
-    Get-ChildItem -Path $SaraUploadLogsFolder |
-        Where-Object {
-            $_.LastWriteTime `
-                -gt $scriptStartTime } |
-                ForEach-Object { $_ | Copy-Item -Destination $LocalLogFolder -Recurse }
-
-# Copy contents from Sara results
-    Get-ChildItem -Path $SaraResultsFolder |
-        Where-Object {
-            $_.LastWriteTime `
-                -gt $scriptStartTime } |
-                ForEach-Object { $_ | Copy-Item -Destination $LocalLogFolder -Recurse }
 }
 
 # Create Zip file with all logs attached
@@ -221,12 +155,7 @@ Function Create-LogArchive()
 # Checks if elevated execution is needed for this scenario
 Function Check-AdminAccess($scenario)
 {
-    $elevationRequired = $false
-
-        if ($scenario -in "OfficeActivationScenario", "OfficeScrubScenario", "OfficeSharedComputerScenario", "ResetOfficeActivation")
-        {
-            $elevationRequired = $true
-        }
+    $elevationRequired = $true
 
     return $elevationRequired
 }
@@ -234,62 +163,67 @@ Function Check-AdminAccess($scenario)
 # Checks if the current window is elevated
 Function Test-IsAdmin # Function credit to: https://devblogs.microsoft.com/scripting/use-function-to-determine-elevation-of-powershell-console/
 {
-# Returns True if the script is run from an elevated PowerShell console (Run as administrator)
+    # Returns True if the script is run from an elevated PowerShell console (Run as administrator)
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-        $principal = New-Object Security.Principal.WindowsPrincipal $identity
-        return $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+    $principal = New-Object Security.Principal.WindowsPrincipal $identity
+    return $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 }
 
 # Download and execute the SaRA scenario
-Function Execute-SaraCMD($saraCmdSourcePath, $arguments)
+Function Execute-GetHelpCMD($GetHelpCmdSourcePath, $arguments)
 {
     $success = $false
-        $filesCopied = Copy-SaraLocally($saraCmdSourcePath)
-        if ([bool]::Parse($filesCopied) -ne $true)
-        {
-            Write-Host "Could not get Sara CMD File locally, exiting..."
-                exit
-        }
+    $filesCopied = Copy-GetHelpLocally($GetHelpCmdSourcePath)
+    if ([bool]::Parse($filesCopied) -ne $true)
+    {
+        Write-Host "Could not get GetHelp CMD File locally, exiting..."
+        exit
+    }
 
-    Write-Output "Executing sara cmd from $SaraCmdExecutablePath" | Out-File -FilePath $scriptLogFile -Append
-        Write-Output "With arguments : $arguments" | Out-File -FilePath $scriptLogFile -Append
+    Write-Output "Executing GetHelp cmd from $GetHelpCmdExecutablePath" | Out-File -FilePath $scriptLogFile -Append
+    Write-Output "With arguments : $arguments" | Out-File -FilePath $scriptLogFile -Append
 
-        $scenario = Get-Scenario($arguments)
+    $scenario = Get-Scenario($arguments)
 
-        Write-Host ""
-        Write-Host ">>> Starting the scenario with the following arguments:"
-        Write-Host ""
-        Write-Host " $SaraScenarioArgument"
-        Write-Host ""
-        Write-Host ">>> Please wait ..."
-        Write-Host ""
+    Write-Host ""
+    Write-Host ">>> Starting the scenario with the following arguments:"
+    Write-Host ""
+    Write-Host " $GetHelpScenarioArgument"
+    Write-Host ""
+    Write-Host ">>> Please wait ..."
+    Write-Host ""
 
-        $processInfo = new-Object System.Diagnostics.ProcessStartInfo($SaraCmdExecutablePath);
+    $processInfo = new-Object System.Diagnostics.ProcessStartInfo($GetHelpCmdExecutablePath);
     $processInfo.Arguments = $arguments # Do NOT modify - These are required parameters for this scenario
 
-        if(Check-AdminAccess($scenario) -eq $true)
-        {
-            $processInfo.Verb = "RunAs"
-        }
+    if(Check-AdminAccess($scenario) -eq $true)
+    {
+        $processInfo.Verb = "RunAs"
+    }
 
     $processInfo.CreateNoWindow = $true;
     $processInfo.UseShellExecute = $false;
     $processInfo.RedirectStandardOutput = $true;
+    $processInfo.RedirectStandardError = $true;
     $process = [System.Diagnostics.Process]::Start($processInfo);
-    $process.StandardOutput.ReadToEnd();
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
     $process.WaitForExit();
 
-# https://learn.microsoft.com/microsoft-365/troubleshoot/administration/sara-command-line-version
-# See the above article for possible ExitCode values
+    if ($stdout) { Write-Host "Output: $stdout" }
+    if ($stderr) { Write-Host "Error: $stderr" }
 
-    if($process.HasExited -and ($process.ExitCode -eq 0 -or ($process.ExitCode -eq 80) -or ($scenario="TeamsAddinScenario" -and $process.ExitCode -eq 23) -or ($scenario="OfficeSharedActivationScenario" -and $process.ExitCode -eq 63) -or ($scenario="OfficeActvationScenario" -and $process.ExitCode -eq 36) -or ($scenario="OutlookCalendarCheckTask" -and $process.ExitCode -eq 43) -or ($scenario="ExpertExperienceAdminTask" -and ($process.ExitCode -eq 01 -or $process.ExitCode -eq 02 -or $process.ExitCode -eq 3 -or $process.ExitCode -eq 66 -or $process.ExitCode -eq 67))))
+    # https://learn.microsoft.com/microsoft-365/troubleshoot/administration/GetHelp-command-line-version
+    # See the above article for possible ExitCode values
+
+    if($process.HasExited -and ($process.ExitCode -eq 0 -or ($process.ExitCode -eq 80)))
     {
         $success = $true
     }
 
     $process.Dispose();
 
-# Returns True if the scenario's execution PASSED, otherwise False
+    # Returns True if the scenario's execution PASSED, otherwise False
     return $success;
 }
 
@@ -298,18 +232,19 @@ Function Get-Scenario($arguments)
 {
     $scenario = ""
 
-        $args = $arguments.Split("-")
+    $args = $arguments.Split("-")
 
-        foreach ($arg in $args)
+    foreach ($arg in $args)
+    {
+        if ($arg.StartsWith("S ") -or $arg.StartsWith("s "))
         {
-            if ($arg.StartsWith("S ") -or $arg.StartsWith("s "))
-            {
-                $scenario = $arg.Split(" ")[1]
-                    break;
-            }
+            $scenario = $arg.Split(" ")[1]
+            break;
         }
+    }
     return $scenario
 }
+
 #
 # -------------------
 # End Local Functions
@@ -319,264 +254,147 @@ Function Get-Scenario($arguments)
 # Begin Script
 # ------------
 #
-#Check for an empty $SaraCmdSourcePath variable
-if(($SaraCmdSourcePath -eq "") -or ($SaraCmdSourcePath -eq $null))
-{
 
-    Write-Host ">>>"
-        Write-Host ">>> A value for `$SaraCmdSourcPath has not be specified in the script."
-        exit
-}
-# Check to see if the path is exists
-if (-not ($saracmdsourcepath -like "https*") -and -not (Test-Path $SaraCmdSourcePath))
-{
-    Write-Host ">>>"
-        Write-Host ">>> The path specified for `$SaraCmdSourcePath: '$SaraCmdSourcePath' does not exist."
-        Write-Host ">>>"
-        Write-Host ">>> Please check the specified path and update `$SaraCmdSourcePath to point to a valid path."
-        Write-Host ">>>"
-        exit
-}
-# Check to see if https path is correct
-if ($saracmdsourcepath -like "https*" -and -not($saracmdsourcepath -eq "https://aka.ms/SaRA_EnterpriseVersionFiles"))
-{
-    Write-Host ">>>"
-        Write-Host ">>> https URL used, but the path ($SaraCmdSourcePath) specified for `$SaraCmdSourcePath is not correct."
-        Write-Host ">>>"
-        Write-Host ">>> Please update `$SaraCmdSourcePath to 'https://aka.ms/SaRA_EnterpriseVersionFiles'."
-        Write-Host ">>>"
-        exit
-}
-# Check for an empty $SaraScenarioArgument variable
-if (($SaraScenarioArgument -eq "") -or ($SaraScenarioArgument -eq $null))
-{
-    Write-Host ">>>"
-        Write-Host ">>> `$SaraScenarioArgument is blank"
-        Write-Host ">>>"
-        Write-Host ">>> `$SaraScenarioArgument = $SaraScenarioArgument"
-        Write-Host ">>>"
-        Write-Host ">>> Please refer to the Configurable Variables section of the script for the `$SaraScenarioArgument variable"
-        exit
-}
+function Invoke-Main {
 
-# Check for an empty $currentTimeStamp variable
-if (($currentTimeStamp -eq "") -or ($currentTimeStamp -eq $null))
-{
-    Write-Host ">>>"
-        Write-Host ">>> `$currentTimeStamp is blank"
-        Write-Host ">>>"
-        Write-Host ">>> `$currentTimeStamp = $currentTimeStamp"
-        Write-Host ">>>"
-        Write-Host ">>> Please refer to the Configurable Variables section of the script for the `$currentTimeStamp variable"
-        exit
-}
-# Check for an empty $resultsFileName variable
-if (($resultsFileName -eq "") -or ($resultsFileName -eq $null))
-{
-    Write-Host ">>>"
-        Write-Host ">>> `$resultsFileName is blank"
-        Write-Host ">>>"
-        Write-Host ">>> `$resultsFileName = $resultsFileName"
-        Write-Host ">>>"
-        Write-Host ">>> Please refer to the Configurable Variables section of the script for the `$resultsFileName variable"
-        exit
-}
-# Check for the existence and spelling of the required -AcceptEula switch
-if ($SaraScenarioArgument -notlike "*-accepteula*")
-{
-    Write-Host ">>>"
-        Write-Host ">>> Required switch -AcceptEula missing or misspelled in `$SaraScenarioArgument"
-        Write-Host ">>>"
-        Write-Host ">>> `$SaraScenarioArgument = $SaraScenarioArgument"
-        exit
-}
-# Check for the existence and spelling of the required -Script switch
-if ($SaraScenarioArgument -notlike "*-script*")
-{
-    Write-Host ">>>"
-        Write-Host ">>> Required switch -Script missing or misspelled in `$SaraScenarioArgument"
-        Write-Host ">>>"
-        Write-Host ">>> `$SaraScenarioArgument = $SaraScenarioArgument"
-        exit
-}
-# Check for the required -S switch
-if ($SaraScenarioArgument -notlike "*-s *")
-{
-    Write-Host ">>>"
-        Write-Host ">>> Required switch -S missing in `$SaraScenarioArgument"
-        Write-Host ">>>"
-        Write-Host ">>> `$SaraScenarioArgument = $SaraScenarioArgument"
-        exit
-}
-
-$scenario = Get-Scenario($SaraScenarioArgument)
-
-# Check to ensure specified scenario name exists and is spelled correctly
-    if ($scenario -notin "ExpertExperienceAdminTask", "OfficeActivationScenario", "OfficeScrubScenario", "TeamsAddinScenario", "OutlookCalendarCheckTask", "OfficeSharedComputerScenario", "ResetOfficeActivation")
-{
-    Write-Host ">>>"
-        Write-Host ">>> The scenario name used for the -S switch in `$SaraScenarioArgument is not valid."
-        Write-Host ">>>"
-        Write-Host ">>> $SaraScenarioArgument = $SaraScenarioArgument"
-        Write-Host ">>>"
-        Write-Host ">>> Valid scenario names are: "
-        Write-Host ">>>"
-        Write-Host ">>> ExpertExperienceAdminTask, OfficeActivationScenario, OfficeScrubScenario, TeamsAddinScenario, "
-        Write-Host ">>> OutlookCalendarCheckTask, OfficeSharedComputerScenario, ResetOfficeActivation"
-        Write-Host ">>>"
-        write-Host ">>> See https://learn.microsoft.com/microsoft-365/troubleshoot/administration/sara-command-line-version for details."
-        exit
-}
-
-#
-# Ensure the minimum required switches and parameters were used for the specified scenario
-#
-switch ($scenario)
-{
-    ExpertExperienceAdminTask
+    #Check for an empty $GetHelpCmdSourcePath variable
+    if(($GetHelpCmdSourcePath -eq "") -or ($null -eq $GetHelpCmdSourcePath))
     {
-# The required switches for this scenario are -S, -Script and -AcceptEula and there's a check for them elsewhere
+        return 20 # GetHelpCmd path empty
     }
-    OfficeActivationScenario
+    # Check to see if the path is exists
+    if (-not ($GetHelpcmdsourcepath -like "https*") -and -not (Test-Path $GetHelpCmdSourcePath))
     {
-# Check for required -CloseOffice switch
-        if ($SaraScenarioArgument -notlike "*closeoffice*")
-        {
-            Write-Host ">>>"
-                Write-Host ">>> You specified the following switches and parameters:"
-                Write-Host ">>>"
-                Write-Host ">>> $SaraScenarioArgument"
-                Write-Host ">>>"
-                Write-Host ">>> The $scenario scenario requires the -CloseOffice switch"
-                Write-Host ">>>"
-                Write-Host ">>> Please see https://learn.microsoft.com/microsoft-365/troubleshoot/administration/assistant-office-activation for complete details"
-                exit
-        }
+        return 30 # GetHelpCmd path does not exist
     }
-    OfficeScrubScenario
+    # Check to see if https path is correct
+    if ($GetHelpcmdsourcepath -like "https*" -and -not($GetHelpcmdsourcepath -eq "https://aka.ms/SaRA_EnterpriseVersionFiles"))
     {
-# The required switches for this scenario are -S, -Script and -AcceptEula and there's a check for them elsewhere
+        return 31 # https path not correct
     }
-    TeamsAddinScenario
+    # Check for an empty $GetHelpScenarioArgument variable
+    if (($GetHelpScenarioArgument -eq "") -or ($null -eq $GetHelpScenarioArgument))
     {
-# Check for required -CloseOutlook switch
-        if ($SaraScenarioArgument -notlike "*closeoutlook*")
-        {
-            Write-Host ">>>"
-                Write-Host ">>> You specified the following switches and parameters:"
-                Write-Host ">>>"
-                Write-Host ">>> $SaraScenarioArgument"
-                Write-Host ">>>"
-                Write-Host ">>> The $scenario scenario requires the -CloseOutlook switch"
-                Write-Host ">>>"
-                Write-Host ">>> Please see https://learn.microsoft.com/microsoft-365/troubleshoot/administration/assistant-teams-meeting-add-in-outlook for complete details"
-                exit
-        }
-    }
-    OutlookCalendarCheckTask
-    {
-# The required switches for this scenario are -S, -Script and -AcceptEula and there's a check for them elsewhere
-    }
-    OfficeSharedComputerScenario
-    {
-# Check for required -CloseOffice switch
-        if ($SaraScenarioArgument -notlike "*closeoffice*")
-        {
-            Write-Host ">>>"
-                Write-Host ">>> You specified the following switches and parameters:"
-                Write-Host ">>>"
-                Write-Host ">>> $SaraScenarioArgument"
-                Write-Host ">>>"
-                Write-Host ">>> The $scenario scenario requires the -CloseOffice switch"
-                Write-Host ">>>"
-                Write-Host ">>> Please see https://learn.microsoft.com/microsoft-365/troubleshoot/administration/assistant-office-shared-computer-activation for complete details"
-                exit
-        }
-    }
-    ResetOfficeActivation
-    {
-# Check for required -CloseOffice switch
-        if ($SaraScenarioArgument -notlike "*closeoffice*")
-        {
-            Write-Host ">>>"
-                Write-Host ">>> You specified the following switches and parameters:"
-                Write-Host ">>>"
-                Write-Host ">>> $SaraScenarioArgument"
-                Write-Host ">>>"
-                Write-Host ">>> The $scenario scenario requires the -CloseOffice switch"
-                Write-Host ">>>"
-                Write-Host ">>> Please see https://learn.microsoft.com/microsoft-365/troubleshoot/administration/assistant-reset-office-activation for complete details"
-                exit
-        }
+        return 21 # GetHelpScenario arguments empty
     }
 
-}
+    # Check for an empty $currentTimeStamp variable
+    if (($currentTimeStamp -eq "") -or ($null -eq $currentTimeStamp))
+    {
+        return 22 # current time stamp empty
+    }
+    # Check for an empty $resultsFileName variable
+    if (($resultsFileName -eq "") -or ($null -eq $resultsFileName))
+    {
+        return 23 # results file name empty
+    }
+    # Check for the existence and spelling of the required -AcceptEula switch
+    if ($GetHelpScenarioArgument -notlike "*-accepteula*")
+    {
+        return 40 # eula switch not found
+    }
+    # Check for the required -S switch
+    if ($GetHelpScenarioArgument -notlike "*-s *")
+    {
+        return 41 # -S switch not found
+    }
 
-try
-{
-    Clean-InitialFiles
+    $scenario = Get-Scenario($GetHelpScenarioArgument)
+
+    # Check to ensure specified scenario name exists and is spelled correctly
+    if ($scenario -notin "OfficeScrubScenario")
+    {
+        return 42 # Scrub Scenario not found
+    }
+
+    try
+    {
+        Clean-InitialFiles
         Create-LocalFolders
         Write-Output "--------------------------------------------" | Out-File -FilePath $scriptLogFile # First log statement to create the file
-}
-catch
-{
-    Write-Host ">>> Unable to create the local log file folders. You may not have permissions to write into this folder."
-        Write-Host ">>>"
-        Write-Host ">>> Execute this script in a different folder."
-        exit
-}
+    }
+    catch
+    {
+        return 32 # Local Path not found
+    }
 
-$elevationNeeded = Check-AdminAccess($scenario)
-
-if (($elevationNeeded -ne $true) -or (($elevationNeeded -eq $true) -and (Test-IsAdmin -eq $true)))
-{
     $resultsFileName = $resultsFileName.Replace("<scenario>", $scenario)
-        $resultsFilePath = $resultsFilePath.Replace("<scenario>", $scenario)
+    $resultsFilePath = $resultsFilePath.Replace("<scenario>", $scenario)
 
-        $executionSuccess = Execute-SaraCMD $SaraCmdSourcePath $SaraScenarioArgument
+    $executionSuccess = Execute-GetHelpCMD $GetHelpCmdSourcePath $GetHelpScenarioArgument
 
-        Write-Host ">>> SaraCmd.exe output"
-        Write-Host ""
-        Write-Host "SaRA Command Line script execution status: $executionSuccess"
-        Write-Host ""
-
-        Write-Output "SaRA Command Line script execution status: $executionSuccess" | Out-File -FilePath $scriptLogFile -Append
-        Write-Output "" | Out-File -FilePath $scriptLogFile -Append
-
-        if($executionSuccess -eq $true)
-        {
-            Write-Output ">>> Scenario execution completed successfully" | Out-File -FilePath $scriptLogFile -Append
-                Write-Host ">>> Scenario execution completed successfully"
-        }
-        else
-        {
-            Write-Output ">>> SaRA Commandline ran into a problem or had an error. Please check the SaraLog-<date>.log file for details." | Out-File -FilePath $scriptLogFile -Append
-                Write-Host ">>> SaRA Commandline ran into a problem or had an error. Please check the SaraLog-<date>.log files for details."
-                Write-Host ""
-        }
-
-    Copy-LogFiles
-        Create-LogArchive
-        Write-Output ">>> All Generated Logs are found at: $resultsFilePath"
-}
-else
-{
+    Write-Host ">>> GetHelpCmd.exe output"
     Write-Host ""
-        Write-Host ">>> $scenario needs to be run with elevated privileges (Run As Administrator)"
-        Write-Host ">>> Execute this script from a new PowerShell window using 'Run As Administrator'"
-        Write-Host ""
+    Write-Host "GetHelpCmd Command Line script execution status: $executionSuccess"
+    Write-Host ""
+
+    Write-Output "GetHelpCmd Command Line script execution status: $executionSuccess" | Out-File -FilePath $scriptLogFile -Append
+    Write-Output "" | Out-File -FilePath $scriptLogFile -Append
+
+    if($executionSuccess -eq $true)
+    {
+        Write-Output ">>> Scenario execution completed successfully" | Out-File -FilePath $scriptLogFile -Append
+        Write-Host ">>> Scenario execution completed successfully"
+    }
+    else
+    {
+        Write-Output ">>> GetHelpCmd ran into a problem or had an error. Please check the GetHelpLog-<date>.log file for details." | Out-File -FilePath $scriptLogFile -Append
+        return 50 # scrub failed
+    }
+
+    try {
+        Create-LogArchive
+    }
+    catch {
+        return 60 # Log archive creation failed
+    }
+
+    try {
+        Clean-LocalFiles
+    }
+    catch {
+        return 80 # Local file clean failed
+    }
+
+#
+# ----------------
+# Launch page to re-download office in firefox (the superior browser)
+# ----------------
+#
+
+    try {
+        # SYSTEM user needs path for executable, grab from registry first
+        $firefoxPath = (Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\firefox.exe" -ErrorAction SilentlyContinue).'(defult)'
+        if (-not $firefoxPath) {$firefoxPath = "C:\Program Files\Mozilla Firefox\firefox.exe"}
+
+        # Create scheduled task so firefox can launch under the user's profile, not SYSTEM
+        $action = New-ScheduledTaskAction -Execute $firefoxPath -Argument "https://portal.office.com/"
+        $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date)
+        $principal = New-ScheduledTaskPrincipal -GroupId "BUILTIN\Users" -RunLevel Limited
+
+        Register-ScheduledTask -TaskName "PostScrubLaunch" -Action $action -Trigger $trigger -Principal $principal -Force | Out-Null
+        Start-ScheduledTask -TaskName "PostScrubLaunch"
+
+        Start-Sleep -Seconds 5
+    }
+    catch {
+        return 90 # Webpage launch failed
+    }
+    finally {
+        Unregister-ScheduledTask -TaskName "PostScrubLaunch" -Confirm:$false -ErrorAction SilentlyContinue
+    }
+
+    return 0 # Everything is ok
 }
 
-Clean-LocalFiles
-#
-# ----------
-# End script
-# ----------
-#
-# ================
-# End Main section
-# ================
-#
+$exitCode = Invoke-Main
 
-# Launch page to re-download office in chrome
-[System.Diagnostics.Process]::Start("chrome", "https://portal.office.com")
+exit $exitCode
+
+#
+# ****************
+#
+# End Script
+#
+# ****************
+#
